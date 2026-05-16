@@ -94,3 +94,11 @@ TFIDF_SUBLINEAR_TF = True
 
 # Optional SVD for MLP (fit on train only; Task 2)
 SVD_N_COMPONENTS = 300
+
+# Method 1: Binary Relevance + Linear SVM (Section 3.1)
+SVM_C_GRID = [0.01, 0.1, 1.0, 10.0, 100.0]
+SVM_MAX_ITER = 5000
+SVM_CLASS_WEIGHT = "balanced"
+SVM_MODEL_DIR = MODELS_DIR / "svm_br"
+SVM_RESULTS_DIR = RESULTS_DIR / "svm_br"
+SVM_TOP_COEF_K = 20
