@@ -45,10 +45,6 @@ Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation.
 | **Missing Plutchik labels** | REDv2 has no **Disgust** or **Anticipation** annotations. | We will report results only on the seven REDv2 labels. One of the limitations is that the corpus cannot evaluate disgust/anticipation. |
 | **Naming** | Joy, Trust, Fear, Surprise, Sadness, Anger align with Plutchik. | We will use REDv2 names in code and tables and add a short mapping table in the document/thesis linking to Plutchik where applicable. |
 
-**Recommended wording for the thesis/report**
-
-> “We adopt Plutchik’s idea of multiple coexisting emotions as motivation. Annotations follow REDv2’s seven labels (Anger, Fear, Joy, Sadness, Neutral, Trust, Surprise). Neutral is retained as an emotion-related stance label. Disgust and Anticipation are out of scope because they are not annotated in REDv2.”
-
 ### 2.3 Data Protocol (Before Modeling)
 
 - Use the **official REDv2 train/validation/test split** if provided; otherwise define a **fixed, stratified split** (document seed and proportions).
