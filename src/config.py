@@ -83,7 +83,7 @@ LOWERCASE_TEXT = True
 STRIP_WHITESPACE = True
 
 # If True, drop duplicate raw tweets (train > valid > test priority)
-DEDUPLICATE_TEXTS = True
+DEDUPLICATE_TEXTS = False
 
 # TF-IDF defaults (Section 2.4) — tune on validation later
 TFIDF_MAX_FEATURES = 20_000
