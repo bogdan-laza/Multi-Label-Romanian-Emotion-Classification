@@ -266,7 +266,7 @@ Before coding, confirm:
 - [ ] Limitations section (Section 4) included in final report  
 - [ ] Fixed random seeds; `requirements.txt` with library versions  
 
-**Suggested stack:** Python 3, `scikit-learn`, `numpy`, `scipy`, `lime`, `matplotlib` / `seaborn`, `pandas`; MLP via `sklearn.neural_network.MLPClassifier` or PyTorch (choose one and document).
+**Suggested stack:** Python 3, `scikit-learn`, `numpy`, `scipy`, `lime`, `matplotlib` / `seaborn`, `pandas`; MLP via `sklearn.neural_network.MLPClassifier`.
 
 ---
 
