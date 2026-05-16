@@ -13,11 +13,6 @@ The core goal of this project is to build and evaluate a system capable of detec
 - LIME-based interpretability and side-by-side comparison
 - Standard multi-label metrics and a documented train/validation/test protocol
 
-**Out of scope (unless added later as stretch goals)**
-
-- Transformer / BERT-style contextual models (fair comparison would use different features; not part of the core “same features, different learner” design)
-- Real-time deployment or API serving
-
 ---
 
 ## 2. The Data & Feature Engineering Phase
