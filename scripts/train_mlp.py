@@ -24,9 +24,9 @@ sys.path.insert(0, str(ROOT))
 from src.config import (  # noqa: E402
     DEDUPLICATE_TEXTS,
     LABEL_NAMES,
+    MLP_RESULTS_DIR,
     MODELS_DIR,
     RANDOM_SEED,
-    RESULTS_DIR,
     SVD_N_COMPONENTS,
 )
 from src.data import get_X_y, load_all_splits  # noqa: E402
@@ -254,7 +254,7 @@ def main() -> None:
 
     save_checkpoint(mlp, thresholds, train_info, FEATURES_DIR)
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    MLP_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     results = {
         "validation": metrics_to_serializable(valid_metrics),
         "test": metrics_to_serializable(test_metrics),
@@ -266,12 +266,12 @@ def main() -> None:
         "best_val_log_loss": train_info["best_val_log_loss"],
         "epochs_run": train_info["epochs_run"],
     }
-    with (RESULTS_DIR / "mlp_metrics.json").open("w", encoding="utf-8") as f:
+    with (MLP_RESULTS_DIR / "mlp_metrics.json").open("w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 
-    test_metrics["per_label"].to_csv(RESULTS_DIR / "mlp_per_label_test.csv", index=False)
-    print(f"\nWrote {RESULTS_DIR / 'mlp_metrics.json'}")
-    print(f"Wrote {RESULTS_DIR / 'mlp_per_label_test.csv'}")
+    test_metrics["per_label"].to_csv(MLP_RESULTS_DIR / "mlp_per_label_test.csv", index=False)
+    print(f"\nWrote {MLP_RESULTS_DIR / 'mlp_metrics.json'}")
+    print(f"Wrote {MLP_RESULTS_DIR / 'mlp_per_label_test.csv'}")
     print("Done.")
 
 
