@@ -1,0 +1,28 @@
+# Data (download with scripts/download_data.py)
+data/
+
+# Artifacts
+models/
+results/
+*.pkl
+*.joblib
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
