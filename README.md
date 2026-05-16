@@ -41,10 +41,9 @@ Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation.
 
 | Issue | Description | How we handle it in this project |
 |-------|-------------|----------------------------------|
-| **Neutral** | REDv2 includes Neutral; Plutchik’s wheel has no direct “neutral” basic emotion. | Treat **Neutral as a first-class REDv2 label** in all training and evaluation. In the report, state explicitly that the task is **REDv2 multi-label emotion detection**, informed by Plutchik, not a strict 1:1 Plutchik replication. |
-| **Missing Plutchik labels** | REDv2 has no **Disgust** or **Anticipation** annotations. | Do **not** invent these labels. Report results only on the seven REDv2 labels. Discuss in limitations that the corpus cannot evaluate disgust/anticipation. |
-| **Naming** | Joy, Trust, Fear, Surprise, Sadness, Anger align with Plutchik. | Use REDv2 names in code and tables; add a short mapping table in the document/thesis linking to Plutchik where applicable. |
-| **Framing** | Project title mentions Plutchik’s wheel. | Frame Plutchik as **conceptual motivation** (multi-dimensional, co-occurring emotions); **operational labels** are REDv2’s seven. |
+| **Neutral** | REDv2 includes Neutral; Plutchik’s wheel has no direct “neutral” basic emotion. | We will treat **Neutral as a first-class REDv2 label** in all training and evaluation. The task is **REDv2 multi-label emotion detection**, informed by Plutchik, not a strict 1:1 Plutchik replication. |
+| **Missing Plutchik labels** | REDv2 has no **Disgust** or **Anticipation** annotations. | We will report results only on the seven REDv2 labels. One of the limitations is that the corpus cannot evaluate disgust/anticipation. |
+| **Naming** | Joy, Trust, Fear, Surprise, Sadness, Anger align with Plutchik. | We will use REDv2 names in code and tables and add a short mapping table in the document/thesis linking to Plutchik where applicable. |
 
 **Recommended wording for the thesis/report**
 
