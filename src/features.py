@@ -114,7 +114,6 @@ def fit_tfidf_splits(
     X_test: list[str],
     use_svd: bool = False,
 ) -> tuple[csr_matrix | np.ndarray, ...]:
-    """Convenience: fit on train, return (X_train, X_valid, X_test) features."""
     pipe = TfidfFeaturePipeline(use_svd=use_svd)
     X_tr = pipe.fit_transform_train(X_train, apply_svd=use_svd)
     X_va = pipe.transform(X_valid, apply_svd=use_svd)

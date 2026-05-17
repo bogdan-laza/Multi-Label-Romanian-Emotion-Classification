@@ -1,5 +1,3 @@
-"""Fit TF-IDF on train and persist vectorizer (+ optional SVD) for SVM/MLP."""
-
 from __future__ import annotations
 
 import sys

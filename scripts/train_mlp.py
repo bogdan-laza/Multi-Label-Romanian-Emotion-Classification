@@ -43,7 +43,6 @@ MIN_DELTA = 1e-4
 
 
 def multilabel_log_loss(y_true: np.ndarray, y_proba: np.ndarray) -> float:
-    """Mean binary cross-entropy across all labels and samples."""
     if not np.isfinite(y_proba).all():
         return float("inf")
     eps = 1e-7
@@ -57,7 +56,6 @@ def load_or_fit_features(
     X_valid: list[str],
     X_test: list[str],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, TfidfFeaturePipeline]:
-    """Load pre-fitted TF-IDF + SVD pipeline, or fit and save if missing."""
     if FEATURES_DIR.is_dir() and (FEATURES_DIR / "vectorizer.joblib").is_file():
         pipe = TfidfFeaturePipeline.load(FEATURES_DIR)
         if not pipe.use_svd:

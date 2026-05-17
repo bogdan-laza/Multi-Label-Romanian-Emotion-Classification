@@ -17,7 +17,6 @@ def preprocess_text(text: str) -> str:
     if LOWERCASE_TEXT:
         text = text.lower()
 
-    # Collapse repeated whitespace
     text = re.sub(r"\s+", " ", text).strip()
     return text
 

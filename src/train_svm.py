@@ -31,7 +31,6 @@ def build_linear_svm_br(
     max_iter: int | None = None,
     random_state: int | None = None,
 ) -> OneVsRestClassifier:
-    """One binary LinearSVC per label (Binary Relevance)."""
     base = LinearSVC(
         C=C,
         class_weight=class_weight if class_weight is not None else SVM_CLASS_WEIGHT,
@@ -43,7 +42,6 @@ def build_linear_svm_br(
 
 
 def build_majority_baseline() -> OneVsRestClassifier:
-    """Per-label majority class (README Section 3.3)."""
     return OneVsRestClassifier(
         DummyClassifier(strategy="most_frequent"),
         n_jobs=-1,
@@ -51,7 +49,6 @@ def build_majority_baseline() -> OneVsRestClassifier:
 
 
 def decision_scores(model: OneVsRestClassifier, X) -> np.ndarray:
-    """Per-label decision scores (higher => more likely positive)."""
     return model.decision_function(X)
 
 

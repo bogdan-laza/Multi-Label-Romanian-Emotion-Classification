@@ -18,7 +18,6 @@ from src.preprocess import preprocess_texts
 
 
 def _reorder_labels(label_vector: list[int]) -> list[int]:
-    """Map REDv2 JSON label order to project LABEL_NAMES order."""
     arr = np.asarray(label_vector, dtype=np.int8)
     return arr[JSON_TO_PROJECT_LABEL_INDEX].tolist()
 
