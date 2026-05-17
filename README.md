@@ -18,29 +18,9 @@ Multi-Label Romanian Emotion Classification using Statistical and Neural Approac
 
 ### 1.1 NLP task
 
-The application solves **multi-label emotion classification** over **short Romanian texts** (Twitter posts). Given a tweet \(x\), the system predicts which emotions from a fixed set \(\mathcal{L}\) are present. Unlike single-label classification (exactly one class per instance), multi-label learning allows **zero, one, or several** emotions on the same tweet—for example Sadness and Anger together.
+The application solves **multi-label emotion classification** over **short Romanian texts** (Twitter posts). Given a tweet, the system predicts which emotions from a fixed set are present. Unlike single-label classification (exactly one class per instance), multi-label learning allows **zero, one, or several** emotions on the same tweet—for example Sadness and Anger together.
 
-**Formal definition.** Each instance is \((x, \mathbf{y})\) with
-
-\[
-\mathbf{y} = (y_1,\ldots,y_L)^\top \in \{0,1\}^L, \quad L = 7
-\]
-
-where \(y_j = 1\) if emotion \(j\) is present. The goal is to learn
-
-\[
-f : \mathcal{X} \rightarrow [0,1]^L
-\]
-
-and obtain binary predictions \(\hat{\mathbf{y}}\) via label-specific thresholds \(\tau_j\):
-
-\[
-\hat{y}_j = \mathbb{1}[\hat{p}_j \geq \tau_j].
-\]
-
-This is a standard **NLP text classification** problem: unstructured text is mapped to a numerical representation, then to label scores.
-
-### 1.2 Why the task is difficult
+### 1.2 Challenges
 
 | Challenge | Description |
 |-----------|-------------|
