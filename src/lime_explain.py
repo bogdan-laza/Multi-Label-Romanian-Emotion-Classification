@@ -1,5 +1,3 @@
-"""LIME explanations for SVM vs MLP on the same test tweets (README Section 5)."""
-
 from __future__ import annotations
 
 import json
@@ -28,7 +26,6 @@ from src.train_svm import decision_scores, load_svm_artifacts, predict_multilabe
 
 
 def _scores_to_binary_proba(scores: np.ndarray) -> np.ndarray:
-    """Map decision scores to 2-column [absent, present] probabilities."""
     p = 1.0 / (1.0 + np.exp(-np.clip(scores, -20, 20)))
     return np.column_stack([1.0 - p, p])
 
@@ -106,9 +103,6 @@ def select_case_studies(
     mlp_thresholds: np.ndarray,
     n_cases: int = 8,
 ) -> pd.DataFrame:
-    """
-    Pick diverse test tweets: multi-label, disagreement, neutral+emotion, confidence.
-    """
     n = len(texts)
     neutral_idx = LABEL_NAMES.index("Neutral")
     labels_true = [set(LABEL_NAMES[i] for i in range(len(LABEL_NAMES)) if y_true[j, i]) for j in range(n)]

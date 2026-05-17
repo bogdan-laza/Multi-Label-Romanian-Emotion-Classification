@@ -1,5 +1,3 @@
-"""Exploratory data analysis: label frequencies, co-occurrence, tweet lengths."""
-
 from __future__ import annotations
 
 import sys

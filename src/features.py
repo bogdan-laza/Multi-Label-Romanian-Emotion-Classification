@@ -1,5 +1,3 @@
-"""TF-IDF vectorization (fit on train only) and optional TruncatedSVD for MLP."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -40,11 +38,6 @@ def build_tfidf_vectorizer(
 
 
 class TfidfFeaturePipeline:
-    """
-    Fit TF-IDF on training texts only; transform train/valid/test.
-
-    Optional SVD branch for MLP (fit SVD on train TF-IDF only).
-    """
 
     def __init__(
         self,

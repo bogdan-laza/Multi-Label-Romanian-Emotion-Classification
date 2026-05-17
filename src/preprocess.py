@@ -1,21 +1,11 @@
-"""Text preprocessing for REDv2 tweets."""
-
 import re
 
 from src.config import LOWERCASE_TEXT, STRIP_WHITESPACE
 
-# Placeholder tokens left by REDv2 anonymization (e.g. <|PERSON|>)
 PLACEHOLDER_PATTERN = re.compile(r"<\|[^|]+\|>")
 
 
 def preprocess_text(text: str) -> str:
-    """
-    Normalize a single tweet for TF-IDF.
-
-    - Keeps Romanian diacritics (ă, â, î, ș, ț) as in REDv2.
-    - Lowercases if configured.
-    - Normalizes placeholder spacing; placeholders are kept as tokens.
-    """
     if not isinstance(text, str):
         text = str(text)
 

@@ -1,5 +1,3 @@
-"""Train Method 1: Binary Relevance + Linear SVM on TF-IDF (tune C, thresholds, evaluate)."""
-
 from __future__ import annotations
 
 import json

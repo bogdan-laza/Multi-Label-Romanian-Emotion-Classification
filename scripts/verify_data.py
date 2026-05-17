@@ -1,5 +1,3 @@
-"""Verify REDv2 labels, splits, and duplicate tweets."""
-
 from __future__ import annotations
 
 import json

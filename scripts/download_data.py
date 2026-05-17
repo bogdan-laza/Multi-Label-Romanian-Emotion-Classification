@@ -1,5 +1,3 @@
-"""Download official REDv2 train/valid/test JSON files."""
-
 from __future__ import annotations
 
 import sys

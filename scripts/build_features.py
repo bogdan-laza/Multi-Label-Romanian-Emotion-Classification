@@ -19,7 +19,6 @@ def main() -> None:
     X_valid, _ = get_X_y(splits["valid"])
     X_test, _ = get_X_y(splits["test"])
 
-    # Default pipeline: raw TF-IDF (for SVM). MLP can use --svd later.
     use_svd = "--svd" in sys.argv
     pipe = TfidfFeaturePipeline(use_svd=use_svd)
     X_tr = pipe.fit_transform_train(X_train)
