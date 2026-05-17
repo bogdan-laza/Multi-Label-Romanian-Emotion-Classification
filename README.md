@@ -49,9 +49,14 @@ Emotion inventory is **REDv2’s seven labels**, informed by Plutchik where they
 
 Both methods use **Binary Relevance (BR)**: train \(L\) independent binary classifiers \(h_j\), one per emotion. Label co-occurrence is not modeled explicitly but may appear in shared features.
 
-\[
-\hat{y}_j = h_j(\phi(x)), \quad \phi(x) = \text{TF-IDF}(x) \text{ or } \text{SVD}(\text{TF-IDF}(x))
-\]
+$$\hat{y}_j = h_j(\phi(x))$$
+$$\phi(x) \in \{ \text{TF-IDF}(x), \, \text{SVD}(\text{TF-IDF}(x)) \}$$
+
+**Where:**
+* $x$: The raw input text (Romanian tweet).
+* $\phi(x)$: The feature extraction pipeline. We use raw sparse $\text{TF-IDF}$ for the Linear SVM, and a dense $\text{SVD}$ compression for the MLP.
+* $h_j$: The classification function for the $j$-th emotion (e.g., *Anger, Fear, Joy*). For the SVM, this is an independent Binary Relevance classifier. For the MLP, this is the $j$-th node of the sigmoid output layer.
+* $\hat{y}_j$: The final predicted probability or binary label for that specific emotion.
 
 ### 2.2 Text preprocessing
 
