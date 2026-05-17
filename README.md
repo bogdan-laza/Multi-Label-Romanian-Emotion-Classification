@@ -1,295 +1,588 @@
-# Multi-Label Romanian Emotion Classification using Statistical and Neural Approaches with Model Interpretability
+# Multi-Label Romanian Emotion Classification
 
-## 1. Project Objective & Scope
+**Technical documentation for the course paper**  
+Multi-Label Romanian Emotion Classification using Statistical and Neural Approaches with Model Interpretability
 
-The core goal of this project is to build and evaluate a system capable of detecting **multiple overlapping emotions** in Romanian text simultaneously. Instead of treating text as having only one emotional tone, the project maps Romanian tweets to an emotion inventory derived from Plutchik’s framework, while respecting the **actual label set provided by REDv2**.
-
-**In scope**
-
-- Multi-label classification on REDv2 (Romanian Emotion Dataset v2)
-- TF-IDF text vectorization (shared feature space for all models)
-- **Method 1:** Linear SVM with **Binary Relevance** on TF-IDF
-- **Method 2:** Multi-layer perceptron (MLP) on TF-IDF (with optional dimensionality reduction)
-- LIME-based interpretability and side-by-side comparison
-- Standard multi-label metrics and a documented train/validation/test protocol
-
----
-
-## 2. The Data & Feature Engineering Phase
-
-### 2.1 The Corpus (REDv2)
-
-We use the **Romanian Emotion Dataset (REDv2)**: human-annotated tweets that capture nuanced language, slang, and cultural context. Because it is **multi-label**, each tweet can activate several emotion labels at once (e.g., Sadness and Anger).
-
-**Official REDv2 emotion labels (7 classes)**
-
-| REDv2 label | Present in Plutchik’s 8 basic emotions? |
-|-------------|----------------------------------------|
-| Anger       | Yes                                    |
-| Fear        | Yes                                    |
-| Joy         | Yes                                    |
-| Sadness     | Yes                                    |
-| Trust       | Yes                                    |
-| Surprise    | Yes                                    |
-| Neutral     | **No** — not one of Plutchik’s eight basic emotions |
-
-**Plutchik’s eight basic emotions (for reference)**
-
-Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation.
-
-### 2.2 REDv2 vs Plutchik: Differences and How We Tackle Them
-
-| Issue | Description | How we handle it in this project |
-|-------|-------------|----------------------------------|
-| **Neutral** | REDv2 includes Neutral; Plutchik’s wheel has no direct “neutral” basic emotion. | We will treat **Neutral as a first-class REDv2 label** in all training and evaluation. The task is **REDv2 multi-label emotion detection**, informed by Plutchik, not a strict 1:1 Plutchik replication. |
-| **Missing Plutchik labels** | REDv2 has no **Disgust** or **Anticipation** annotations. | We will report results only on the seven REDv2 labels. One of the limitations is that the corpus cannot evaluate disgust/anticipation. |
-| **Naming** | Joy, Trust, Fear, Surprise, Sadness, Anger align with Plutchik. | We will use REDv2 names in code and tables and add a short mapping table in the document/thesis linking to Plutchik where applicable. |
-
-### 2.3 Data Protocol (Before Modeling)
-
-- Use the **official REDv2 train/validation/test split** if provided; otherwise define a **fixed, stratified split** (document seed and proportions).
-- Check for **duplicate tweets** or near-duplicates across splits; remove or assign duplicates to one split only.
-- Run **exploratory data analysis (EDA)**:
-  - Per-label frequency (class imbalance)
-  - **Label co-occurrence matrix** (which emotions appear together)
-  - Tweet length distribution (informs `max_features` and preprocessing)
-- Save preprocessing choices (lowercasing, diacritics, tokenization) in the report.
-
-### 2.4 Text Numerical Vectorization (TF-IDF)
-
-Computers cannot read words directly; text is transformed into a numerical matrix:
-
-- Each **row** = one tweet  
-- Each **column** = a weighted importance of a token (word or n-gram) in that tweet relative to the corpus  
-
-**Pipeline decisions to document**
-
-| Parameter | Purpose |
-|-----------|---------|
-| `max_features` | Cap vocabulary size (e.g., 10k–50k) to control sparsity and memory |
-| `ngram_range` | Often `(1, 2)` for unigrams + bigrams; justify in report |
-| `min_df` / `max_df` | Remove very rare or overly common tokens |
-| Romanian-specific tokenization | Consistent handling of diacritics (ă, â, î, ș, ț); align with REDv2 authors’ recommendations if available |
-
-The **same fitted TF-IDF vectorizer** (trained on training text only) must be used for SVM, MLP, and LIME so comparisons are fair.
+| Section | Title |
+|---------|--------|
+| 1 | Problem statement |
+| 2 | Proposed solution (theoretical) |
+| 2.2 | Dataset — description and analysis |
+| 2.3 | Application architecture |
+| 3 | Implementation details |
+| 4 | Experiments and results |
 
 ---
 
-## 3. The Two-Pronged Modeling Strategy
+## 1. Problem Statement
 
-Both methods consume the **same TF-IDF features** (or the same TF-IDF → SVD pipeline for the MLP if dimensionality reduction is applied). Hyperparameter tuning uses the **validation set** only; final numbers come from the **held-out test set** once.
+### 1.1 NLP task
 
-### 3.1 Method 1: Geometrical Baseline — Linear SVM with Binary Relevance
+The application solves **multi-label emotion classification** over **short Romanian texts** (Twitter posts). Given a tweet \(x\), the system predicts which emotions from a fixed set \(\mathcal{L}\) are present. Unlike single-label classification (exactly one class per instance), multi-label learning allows **zero, one, or several** emotions on the same tweet—for example Sadness and Anger together.
 
-**Concept:** TF-IDF defines a high-dimensional space. A **linear** classifier learns a hyperplane per emotion: which side of the plane indicates presence vs absence of that label.
+**Formal definition.** Each instance is \((x, \mathbf{y})\) with
 
-**Multi-label formulation: Binary Relevance (BR)**
+\[
+\mathbf{y} = (y_1,\ldots,y_L)^\top \in \{0,1\}^L, \quad L = 7
+\]
 
-- Train **one binary classifier per label** (7 classifiers for REDv2).
-- Each classifier learns independently: “Is Anger present?” “Is Joy present?” etc.
-- This is **not** a single multi-class SVM (which assumes exactly one label per instance).
+where \(y_j = 1\) if emotion \(j\) is present. The goal is to learn
 
-**Implementation sketch**
+\[
+f : \mathcal{X} \rightarrow [0,1]^L
+\]
 
-- Base estimator: **LinearSVC** or **SGDClassifier** with hinge/log loss on sparse TF-IDF.
-- Wrap with `sklearn.multiclass.OneVsRestClassifier` (equivalent to Binary Relevance for multi-label).
-- Tune **`C`** (regularization strength) on validation data.
-- Use **`class_weight='balanced'`** or per-label weights if imbalance is severe.
+and obtain binary predictions \(\hat{\mathbf{y}}\) via label-specific thresholds \(\tau_j\):
 
-**Optional sanity check:** Logistic Regression with Binary Relevance often performs similarly; can be mentioned if results are close.
+\[
+\hat{y}_j = \mathbb{1}[\hat{p}_j \geq \tau_j].
+\]
 
-### 3.2 Method 2: Pattern-Learning Network — MLP on TF-IDF
+This is a standard **NLP text classification** problem: unstructured text is mapped to a numerical representation, then to label scores.
 
-**Concept:** Hidden layers learn **non-linear** combinations of input features instead of a single linear boundary per label.
+### 1.2 Why the task is difficult
 
-**Challenge:** Raw TF-IDF is **high-dimensional and sparse**. A naive MLP on the full matrix often trains poorly or overfits. We address this with **one or more** of the following (document which options we use):
+| Challenge | Description |
+|-----------|-------------|
+| Language | Romanian morphology, diacritics (ă, â, î, ș, ț), slang, informal social media |
+| Imbalance | Neutral and Sadness dominate; Joy and Trust are rarer |
+| Multi-label sparsity | ~87% of tweets have one agreed label; ~13% have two or more |
+| Annotation | Three annotators; ground truth uses **agreed labels** (≥2 annotators per label) |
+| Surface features | Bag-of-words models miss word order, negation, sarcasm |
 
-#### A. Cap vocabulary size (`max_features`)
+### 1.3 Scope and objective
 
-- Limit the TF-IDF matrix to the top *N* terms by corpus frequency (e.g., 10,000–30,000).
-- Reduces width of the input layer and training cost.
-- Apply the **same** `max_features` when comparing SVM and MLP unless the report justifies different caps.
+The project builds a **reproducible pipeline** on **REDv2** (Romanian Emotion Dataset v2) with:
 
-#### B. Truncated SVD (LSA) on TF-IDF before the MLP
+1. **Method 1:** TF-IDF + Binary Relevance + linear SVM (geometric baseline)  
+2. **Method 2:** TF-IDF + Truncated SVD + MLP (non-linear baseline)  
+3. **Interpretability:** LIME (local) and linear TF-IDF coefficients (global, SVM)  
+4. **Fair evaluation:** same splits, shared TF-IDF (train-fit only), validation tuning, single test report  
 
-- After TF-IDF, apply **`TruncatedSVD`** (latent semantic analysis) to compress to *k* dimensions (e.g., 200–500).
-- Fit SVD on **training data only**, then transform validation/test.
-- **SVM path:** can use raw TF-IDF (linear models handle sparsity well) **or** the same SVD features for a stricter “same representation” comparison—state the choice clearly.
-- **MLP path:** strongly recommended to use TF-IDF → SVD → MLP.
-
-#### C. Strong regularization (MLP architecture and training)
-
-| Technique | Role |
-|-----------|------|
-| **Small hidden layers** | e.g., one or two layers with 128–256 units |
-| **Dropout** | e.g., 0.3–0.5 between layers |
-| **Early stopping** | Monitor validation loss; restore best weights |
-| **L2 weight decay** | Penalize large weights |
-| **Batch normalization** | Optional; can stabilize training |
-| **Lower learning rate + Adam** | Standard stable optimizer |
-
-**Multi-label output:** Sigmoid activation on 7 outputs + **binary cross-entropy** loss (independent labels, consistent with Binary Relevance philosophy).
-
-### 3.3 Simple Baseline (Required for Credibility)
-
-Before claiming SVM or MLP “works,” include at least one trivial baseline:
-
-- **Most frequent label(s)** per training distribution, or  
-- **Binary Relevance with constant / majority prediction** per label  
-
-This shows improvement is not only due to metric choice.
-
-### 3.4 Threshold Tuning (Multi-Label)
-
-Default probability threshold **0.5** is often suboptimal, especially for rare labels.
-
-- Tune **per-label thresholds** on the **validation set** (e.g., grid search to maximize F1 per label or macro-F1).
-- Apply tuned thresholds for **test-set** evaluation and for LIME case studies.
+Emotion inventory is **REDv2’s seven labels**, informed by Plutchik where they align; **Neutral** is included; **Disgust** and **Anticipation** are not in the corpus.
 
 ---
 
-## 4. Model Limitations (TF-IDF, SVM, MLP)
+## 2. Proposed Solution
 
-These must appear in the report so results are interpreted correctly.
+### 2.1 Multi-label strategy: Binary Relevance
 
-### 4.1 Limitations of TF-IDF (Affects Both Models)
+Both methods use **Binary Relevance (BR)**: train \(L\) independent binary classifiers \(h_j\), one per emotion. Label co-occurrence is not modeled explicitly but may appear in shared features.
 
-| Limitation | Impact on REDv2 |
-|------------|-----------------|
-| **Bag-of-words** | Word order is ignored (“not happy” vs “happy” can be confused depending on tokenization). |
-| **No deep context** | Sarcasm, irony, and culture-specific slang may be missed. |
-| **Negation** | Romanian negation (“nu”, “n-am”) may not flip emotion scores reliably. |
-| **OOV / typos** | Rare or misspelled words may be dropped or poorly represented. |
-| **Neutral vs emotional** | Neutral may correlate with generic words; models may learn lexical shortcuts. |
+\[
+\hat{y}_j = h_j(\phi(x)), \quad \phi(x) = \text{TF-IDF}(x) \text{ or } \text{SVD}(\text{TF-IDF}(x))
+\]
 
-Both SVM and MLP share these limits because they share (or nearly share) the same features.
+### 2.2 Text preprocessing
 
-### 4.2 Limitations of Linear SVM + Binary Relevance
+1. Strip whitespace  
+2. Lowercase (diacritics preserved)  
+3. Keep placeholders (`<|person|>`, `<|url|>`)  
+4. Collapse repeated spaces  
 
-| Limitation | Notes |
-|------------|--------|
-| **Linear boundaries only** | Cannot model XOR-like interactions between features without explicit feature engineering. |
-| **Label independence (BR)** | Each emotion is trained separately; co-occurrence structure (e.g., Sadness + Anger) is not modeled jointly. |
-| **Sparse high-dimensional inputs** | Works well in practice for text, but explanations may emphasize frequent emotion words. |
+### 2.3 TF-IDF vectorization
 
-### 4.3 Limitations of MLP on TF-IDF (+ SVD)
+For term \(t\) and document \(d\), with sublinear TF and smoothed IDF:
 
-| Limitation | Notes |
-|------------|--------|
-| **Many hyperparameters** | Layers, dropout, *k* for SVD, learning rate—unfair comparison if MLP is undertuned while SVM is well tuned. |
-| **SVD information loss** | Compression helps training but may discard rare discriminative tokens. |
-| **Still no sequential understanding** | MLP on TF-IDF/SVD is not a substitute for contextual embeddings. |
-| **Overfitting risk** | Mitigated by SVD, dropout, early stopping, and small networks. |
-| **Interpretability** | Harder to read than linear weights; LIME becomes more important. |
+\[
+w_{t,d} = \bigl(1 + \log \mathrm{tf}(t,d)\bigr) \cdot \left(\log\frac{N+1}{\mathrm{df}(t)+1} + 1\right)
+\]
 
-### 4.4 Limitations of LIME
+| Parameter | Value |
+|-----------|-------|
+| `max_features` | 20,000 |
+| `ngram_range` | (1, 2) |
+| `min_df` | 2 |
+| `max_df` | 0.95 |
+| `sublinear_tf` | True |
 
-| Limitation | Notes |
-|------------|--------|
-| **Local approximations** | Explains one prediction, not global model behavior. |
-| **Instability** | Slight changes in sampling can change highlighted words; consider multiple runs or fixed seeds. |
-| **Correlated words** | LIME may attribute effect to one of several co-occurring emotion cues. |
-| **Disruption artifacts** | Masking words can produce unnatural strings; less realistic for slang-heavy tweets. |
+The vectorizer is **fitted on training tweets only**; validation and test are transformed with the same vocabulary.
 
-**Complement for linear SVM:** For each label, report **top positive/negative TF-IDF coefficients** (when using linear models) as a stable global check alongside LIME.
+### 2.4 Method 1: Binary Relevance + Linear SVM
 
----
+For each label \(j\), **LinearSVC** learns \(\mathbf{w}_j, b_j\) minimizing regularized hinge loss:
 
-## 5. Model Interpretability & Evaluation (LIME Integration)
+\[
+\min_{\mathbf{w}_j, b_j} \frac{1}{2}\|\mathbf{w}_j\|^2 + C \sum_{i} \max\left(0,\, 1 - y_i^{(j)}(\mathbf{w}_j^\top \mathbf{x}_i + b_j)\right)
+\]
 
-High accuracy alone is insufficient; we verify that models decide for **plausible linguistic reasons**.
+- **Class weights:** `balanced`  
+- **Decision score:** \(s_j(\mathbf{x}) = \mathbf{w}_j^\top \mathbf{x} + b_j\)  
+- **\(C\) tuning:** grid \(\{0.01, 0.1, 1, 10, 100\}\), select by **validation macro-F1** (threshold 0 on scores)  
+- **Features:** sparse TF-IDF (~14k dimensions on train)  
 
-### 5.1 LIME Protocol
+**Global interpretability:** coefficients \(w_{j,t}\) show which n-grams push toward/away from label \(j\).
 
-1. Select **5–10 test tweets** with clear criteria (document in appendix):
-   - Multi-label (2+ emotions)
-   - High model confidence vs uncertain cases
-   - Cases where **SVM and MLP disagree**
-   - At least one **Neutral** + emotion example
-2. Run LIME with the **same TF-IDF vectorizer** (and SVD transformer for MLP if used).
-3. For each predicted label, show **top contributing tokens** (positive/negative).
-4. Compare SVM vs MLP: same trigger words vs different contextual tokens.
+### 2.5 Method 2: Truncated SVD + MLP
 
-### 5.2 Qualitative Success Criteria (Define Up Front)
+**Truncated SVD** (LSA) projects sparse \(\mathbf{x} \in \mathbb{R}^{|\mathcal{V}|}\) to \(\mathbf{z} \in \mathbb{R}^{300}\), fit on training TF-IDF only:
 
-- **Good:** Highlighted tokens are interpretable emotion cues (e.g., “furios”, “trist”, “minunat”) or clear stance markers for Neutral.
-- **Weak:** Explanations dominated by stopwords, usernames, URLs, or unrelated high-frequency terms.
-- **Comparative question:** Does the MLP attribute weight to **different** or **additional** tokens than the linear model on the same tweet?
+\[
+\mathbf{X} \approx \mathbf{U}_k \mathbf{\Sigma}_k \mathbf{V}_k^\top, \quad \mathbf{z}_d = \mathbf{x}_d \mathbf{V}_k
+\]
 
----
+**MLP:** hidden layers **256 → 128**, ReLU, output layer 7 units with **sigmoid** \(\sigma\). Training minimizes **binary cross-entropy** (independent labels, BR-consistent):
 
-## 6. Evaluation Metrics & Comparative Analysis
+\[
+\mathcal{L} = -\frac{1}{NL}\sum_{i,j}\left[y_i^{(j)}\log\hat{p}_i^{(j)} + (1-y_i^{(j)})\log(1-\hat{p}_i^{(j)})\right]
+\]
 
-### 6.1 Quantitative Metrics (Test Set)
+- **Optimizer:** Adam, \(\eta_0 = 10^{-3}\), `learning_rate='adaptive'`  
+- **L2:** \(\alpha = 10^{-4}\)  
+- **Early stopping:** validation BCE; restore best weights; patience = 10  
+- *Note:* `sklearn.MLPClassifier` has no dropout; regularization is L2 + early stopping + SVD  
 
-| Metric | Purpose |
-|--------|---------|
-| **Micro-averaged F1** | Overall performance with label frequency influence |
-| **Macro-averaged F1** | Equal weight per label; sensitive to rare classes |
-| **Per-label F1, precision, recall** | Table for all 7 REDv2 labels |
-| **Hamming loss** | Fraction of wrong label decisions (lower is better) |
-| **Subset accuracy (exact match)** | Strict: entire label set must match exactly |
-| **Label-wise PR-AUC** (optional) | Useful under imbalance |
+### 2.6 Threshold tuning and metrics
 
-Report **validation** results for tuning; report **test** results once for final comparison.
+**Per-label thresholds** \(\tau_j \in [0.1, 0.9]\) are chosen on the **validation set** to maximize per-label F1, then applied at test time.
 
-### 6.2 Comparative Analysis & Expected Outcomes
+| Metric | Role |
+|--------|------|
+| Micro-F1 | Global F1 over all label decisions |
+| Macro-F1 | Mean per-label F1 (rare classes weighted equally) |
+| Hamming loss | Fraction of wrong label bits |
+| Subset accuracy | Exact match of full label set |
 
-**Quantitative:** Compare SVM (BR) vs MLP on the same test split with the same metrics and threshold policy. Discuss whether gains on macro-F1 (rare labels) differ from micro-F1.
+### 2.7 Trivial baseline
 
-**Qualitative (LIME):** Assess whether the MLP captures subtle context better than the linear model, or whether both models rely on the same high-frequency emotion triggers.
+**Majority per label** (`DummyClassifier`, BR wrapper): predicts the most frequent class on train for each label independently. Used to verify that SVM/MLP beat a naive strategy.
 
-**Fairness checklist**
+### 2.8 Interpretability (LIME)
 
-- Same train/val/test splits
-- Same text preprocessing
-- Same TF-IDF fit on train only
-- Comparable hyperparameter search effort (document grids)
-- Threshold tuning applied consistently
+**LIME** fits a sparse linear model locally around each tweet by perturbing words. For 8 curated test cases, explanations are generated per active/predicted label for **both** SVM and MLP, using the same TF-IDF (and SVD for MLP).
 
 ---
 
-## 7. Reproducibility & Implementation Checklist
+## 2.2. Dataset Used in the Application — Description and Analysis
 
-Before coding, confirm:
+### Source
 
-- [ ] REDv2 downloaded; label columns verified: Anger, Fear, Joy, Sadness, Neutral, Trust, Surprise  
-- [ ] Plutchik vs REDv2 mapping section written (Section 2.2)  
-- [ ] EDA notebook/script: label counts + co-occurrence heatmap  
-- [ ] TF-IDF pipeline with documented `max_features`, ngrams, `min_df`/`max_df`  
-- [ ] Binary Relevance + **Linear SVM** (or linear SGD) with `C` tuning  
-- [ ] MLP: TF-IDF → (recommended) **TruncatedSVD** → MLP with dropout + early stopping  
-- [ ] Per-label threshold tuning on validation set  
-- [ ] Baseline model implemented  
-- [ ] Test evaluation: micro/macro F1, Hamming, per-label F1, subset accuracy  
-- [ ] LIME on fixed test examples; linear coefficients for SVM where applicable  
-- [ ] Limitations section (Section 4) included in final report  
-- [ ] Fixed random seeds; `requirements.txt` with library versions  
+**RED v2** — Ciobotaru et al., LREC 2022.  
+Repository: [Alegzandra/RED-Romanian-Emotion-Datasets](https://github.com/Alegzandra/RED-Romanian-Emotion-Datasets)
 
-**Suggested stack:** Python 3, `scikit-learn`, `numpy`, `scipy`, `lime`, `matplotlib` / `seaborn`, `pandas`; MLP via `sklearn.neural_network.MLPClassifier`.
+### Corpus properties
+
+| Property | Value |
+|----------|-------|
+| Language | Romanian |
+| Domain | Twitter |
+| Total tweets | 5,449 |
+| Labels | 7 (multi-label) |
+| Annotation | 3 annotators; **agreed_labels** used (≥2 agree) |
+| Anonymization | Usernames removed; proper nouns → `<\|PERSON\|>` |
+
+### Label set and Plutchik mapping
+
+| REDv2 label | In Plutchik’s 8 basic? |
+|-------------|------------------------|
+| Anger, Fear, Joy, Sadness, Trust, Surprise | Yes |
+| Neutral | No |
+| Disgust, Anticipation | Not annotated in REDv2 |
+
+JSON label order: `[Sadness, Surprise, Fear, Anger, Neutral, Trust, Joy]`.  
+Application column order: `[Anger, Fear, Joy, Sadness, Neutral, Trust, Surprise]`.
+
+### Official splits (used as-is, no deduplication)
+
+| Split | Samples | Multi-label % | Avg. chars |
+|-------|---------|---------------|------------|
+| Train | 4,088 | 12.8% | 132.1 |
+| Valid | 543 | 12.2% | 133.0 |
+| Test | 818 | 12.7% | 135.1 |
+
+Duplicate texts exist (1 cross-split train/test, 1 within train, 1 within test); splits match the published benchmark.
+
+### Training-set label distribution (agreed labels)
+
+| Label | Count | % of train |
+|-------|-------|------------|
+| Neutral | 1,045 | 25.6% |
+| Sadness | 820 | 20.1% |
+| Anger | 727 | 17.8% |
+| Fear | 637 | 15.6% |
+| Surprise | 493 | 12.1% |
+| Trust | 472 | 11.5% |
+| Joy | 435 | 10.6% |
+
+**Mean labels per tweet:** ~1.13 on all splits.
+
+### Co-occurrence (train, selected pairs)
+
+| Pair | Co-count |
+|------|----------|
+| Fear + Trust | 103 |
+| Sadness + Anger | 71 |
+| Joy + Surprise | 46 |
+| Neutral + Trust | 34 |
+
+Co-occurrence is sparse compared with single-label counts; multi-label modeling remains necessary for ~13% of tweets.
+
+### Tweet length (train / valid / test)
+
+| Statistic | Train | Valid | Test |
+|-----------|-------|-------|------|
+| Mean | 132 | 133 | 135 |
+| Median | 115 | 117 | 116 |
+| 90th %ile | 240 | 241 | 245 |
+
+Splits are length-consistent; short texts justify TF-IDF bag-of-words.
+
+### EDA artifacts (generated)
+
+- `results/eda/label_frequencies_train.png`  
+- `results/eda/label_cooccurrence_train.png`  
+- `results/eda/tweet_length_distribution.png`  
+- `results/eda/labels_per_tweet_train.png`  
 
 ---
 
-## 8. Project Structure (Suggested)
+## 2.3. Application
+
+### 2.3.1 System overview
+
+The application is a **batch ML pipeline** (not a deployed web service): scripts load REDv2, fit/transform features, train models, evaluate on test, export metrics and LIME HTML reports.
+
+### 2.3.2 Application diagram
+
+```mermaid
+flowchart TB
+    subgraph Data["Data layer"]
+        DL[download_data.py]
+        JSON[(REDv2 JSON\ntrain / valid / test)]
+        DL --> JSON
+    end
+
+    subgraph Prep["Preparation"]
+        VF[verify_data.py]
+        EDA[run_eda.py]
+        JSON --> VF
+        JSON --> EDA
+        VF --> MAP[label_mapping.csv\nsplit_summary.csv]
+        EDA --> FIGS[EDA figures / CSV]
+    end
+
+    subgraph Features["Feature engineering"]
+        BF[build_features.py]
+        JSON --> LOAD[src/data.py + preprocess.py]
+        LOAD --> BF
+        BF --> TFIDF[(models/tfidf/)]
+        BF --> TFIDF_SVD[(models/tfidf_svd/\nTF-IDF + SVD k=300)]
+    end
+
+    subgraph Models["Model training"]
+        TS[train_svm.py]
+        TM[train_mlp.py]
+        TFIDF --> TS
+        TFIDF_SVD --> TM
+        TS --> SVM[(models/svm_br/)]
+        TM --> MLP[(models/mlp/)]
+    end
+
+    subgraph Eval["Evaluation & analysis"]
+        CMP[compare_models.py]
+        LIME[run_lime_comparison.py]
+        SVM --> CMP
+        MLP --> CMP
+        SVM --> LIME
+        MLP --> LIME
+        CMP --> COMP[results/comparison/]
+        LIME --> LHTML[results/lime/html/]
+    end
+```
+
+### 2.3.3 Processing flow (single tweet at inference)
+
+```mermaid
+flowchart LR
+    T[Raw tweet] --> P[preprocess_text]
+    P --> V[TfidfVectorizer]
+    V --> Xs{Model?}
+    Xs -->|SVM| SVM_BR[7 × LinearSVC\nBinary Relevance]
+    Xs -->|MLP| SVD[TruncatedSVD\n300-d]
+    SVD --> MLP_N[MLP 256-128-7\nsigmoid]
+    SVM_BR --> TH[Per-label thresholds]
+    MLP_N --> TH
+    TH --> OUT[Binary emotion vector]
+```
+
+### 2.3.4 Repository layout
 
 ```
-project/
-├── data/                 # REDv2 (not committed if large)
-├── notebooks/            # EDA, LIME visualizations
-├── src/
-│   ├── preprocess.py
-│   ├── features.py       # TF-IDF, optional SVD
-│   ├── train_svm.py      # Binary Relevance + Linear SVM
-│   ├── train_mlp.py
-│   ├── evaluate.py       # metrics, thresholds
-│   └── lime_explain.py
-├── models/               # saved vectorizer, SVD, classifiers
-├── results/              # metrics tables, figures
-└── requirements.txt
+Multi-Label-Romanian-Emotion-Classification/
+├── data/redv2/              # REDv2 JSON (gitignored; use download script)
+├── docs/                    # Paper documentation
+├── models/                  # Saved pipelines and classifiers (gitignored)
+├── notebooks/               # Reserved for optional Jupyter work
+├── results/                 # Metrics, EDA, LIME, comparison (gitignored)
+├── scripts/                 # Runnable entry points
+├── src/                     # Core library modules
+├── requirements.txt
+└── README.md
 ```
+
+### 2.3.5 Execution order
+
+```bash
+pip install -r requirements.txt
+python scripts/download_data.py
+python scripts/verify_data.py
+python scripts/run_eda.py
+python scripts/build_features.py          # TF-IDF for SVM
+python scripts/build_features.py --svd    # TF-IDF + SVD for MLP
+python scripts/train_svm.py
+python scripts/train_mlp.py
+python scripts/compare_models.py
+python scripts/run_lime_comparison.py
+```
+
+**Reproducibility:** `RANDOM_SEED = 42` in `src/config.py`.
 
 ---
 
-## 9. Summary
+## 3. Implementation — Details
 
-This project detects **multiple overlapping emotions** in Romanian tweets using **REDv2’s seven labels**, motivated by Plutchik but **not claiming a full Plutchik label set** (Neutral is included; Disgust and Anticipation are absent). **TF-IDF** feeds a **Binary Relevance linear SVM** baseline and an **MLP** with explicit strategies for sparse high-dimensional inputs (`max_features`, **Truncated SVD**, regularization). **LIME** and linear coefficients audit whether predictions align with meaningful words. Evaluation combines **multi-label metrics**, **threshold tuning**, **baselines**, and a **fair comparison protocol**, with limitations stated clearly before implementation begins.
+### 3.1 Technology stack
+
+| Library | Version constraint | Purpose |
+|---------|-------------------|---------|
+| **Python** | 3.11+ | Runtime |
+| **NumPy** | ≥1.24 | Numerical arrays |
+| **pandas** | ≥2.0 | DataFrames, CSV I/O |
+| **SciPy** | ≥1.10 | Sparse matrices |
+| **scikit-learn** | ≥1.3 | TF-IDF, SVD, SVM, MLP, metrics, DummyClassifier |
+| **matplotlib** | ≥3.7 | EDA and comparison plots |
+| **seaborn** | ≥0.13 | Heatmaps (co-occurrence) |
+| **joblib** | ≥1.3 | Model serialization |
+| **lime** | ≥0.2 | Local text explanations |
+
+### 3.2 Module and function reference
+
+#### `src/config.py`
+Project constants: paths, `LABEL_NAMES`, Plutchik flags, TF-IDF/SVM/MLP/LIME hyperparameters, `RANDOM_SEED`, `DEDUPLICATE_TEXTS`.
+
+#### `src/preprocess.py`
+
+| Function | Description |
+|----------|-------------|
+| `preprocess_text(text)` | Lowercase, strip, normalize placeholders and whitespace |
+| `preprocess_texts(texts)` | Batch wrapper |
+
+#### `src/data.py`
+
+| Function | Description |
+|----------|-------------|
+| `load_raw_split(split)` | Load JSON array for train/valid/test |
+| `records_to_dataframe(records)` | Build DataFrame with 7 label columns |
+| `load_split` / `load_all_splits` | Load splits; optional deduplication |
+| `get_X_y(df)` | Return text list and label matrix |
+| `check_duplicates_across_splits` | Duplicate audit |
+| `dataset_summary` | Split statistics |
+| `verify_labels` | Assert binary labels |
+| `label_cooccurrence_matrix` | Co-occurrence counts |
+| `export_label_mapping_table` | Plutchik mapping CSV |
+
+#### `src/features.py`
+
+| Function / class | Description |
+|------------------|-------------|
+| `build_tfidf_vectorizer()` | Configured `TfidfVectorizer` |
+| `TfidfFeaturePipeline` | Fit TF-IDF on train; optional SVD; save/load joblib |
+| `fit_tfidf_splits` | Convenience fit/transform for all splits |
+
+#### `src/evaluate.py`
+
+| Function | Description |
+|----------|-------------|
+| `binarize_proba(y_proba, threshold)` | Apply scalar or per-label thresholds |
+| `compute_multilabel_metrics(y_true, y_pred)` | Micro/macro F1, Hamming, subset accuracy, per-label table |
+| `tune_per_label_thresholds(y_true, y_proba)` | Grid search τⱼ on validation |
+
+#### `src/train_svm.py` (Method 1 core)
+
+| Function | Description |
+|----------|-------------|
+| `build_linear_svm_br(C)` | `OneVsRestClassifier(LinearSVC)` |
+| `build_majority_baseline()` | Per-label `DummyClassifier` |
+| `decision_scores(model, X)` | Stack of SVM decision functions |
+| `tune_svm_c(...)` | Validation macro-F1 over C grid |
+| `train_and_tune(...)` | C tuning + train + threshold tuning |
+| `top_tfidf_coefficients(model, feature_names)` | Top ± weights per label |
+| `save_svm_artifacts` / `load_svm_artifacts` | Persist model, thresholds, meta |
+| `predict_multilabel(model, X, thresholds)` | Binary predictions |
+
+#### `scripts/train_mlp.py` (Method 2 entry)
+
+| Function | Description |
+|----------|-------------|
+| `load_or_fit_features(...)` | Load `models/tfidf_svd` or fit |
+| `build_mlp()` | `MLPClassifier(256, 128)` |
+| `train_with_validation_early_stopping(...)` | Warm-start training + val BCE |
+| `save_checkpoint(...)` | Save MLP, thresholds, meta.json |
+
+#### `src/lime_explain.py`
+
+| Function | Description |
+|----------|-------------|
+| `svm_label_predict_proba` / `mlp_label_predict_proba` | LIME-compatible proba for one label |
+| `explain_label(...)` | Run `LimeTextExplainer` for one label |
+| `select_case_studies(...)` | Pick disagreement / multi-label / Neutral cases |
+| `run_lime_comparison(...)` | Batch explanations + HTML export |
+| `load_models()` | Load SVM, MLP, both feature pipelines |
+
+### 3.3 Scripts (entry points)
+
+| Script | Role |
+|--------|------|
+| `download_data.py` | Fetch REDv2 JSON from GitHub |
+| `verify_data.py` | Labels, splits, duplicates, mapping CSV |
+| `run_eda.py` | Frequencies, co-occurrence, length plots |
+| `build_features.py` | Fit/save TF-IDF; `--svd` for TF-IDF+SVD |
+| `train_svm.py` | Full Method 1 pipeline + baseline + coef export |
+| `train_mlp.py` | Full Method 2 pipeline |
+| `compare_models.py` | Side-by-side test metrics and bar chart |
+| `run_lime_comparison.py` | 8 case studies, LIME HTML reports |
+
+### 3.4 Saved artifacts
+
+| Path | Content |
+|------|---------|
+| `models/tfidf/` | `vectorizer.joblib`, `meta.joblib` |
+| `models/tfidf_svd/` | vectorizer + `svd.joblib` |
+| `models/svm_br/` | `svm_br.joblib`, `thresholds.joblib`, `meta.json` |
+| `models/mlp/` | `mlp_classifier.joblib`, `thresholds.npy`, `meta.json` |
+| `results/svm_br/report.json` | SVM test/valid metrics |
+| `results/mlp/mlp_metrics.json` | MLP test/valid metrics |
+| `results/comparison/` | Comparison tables and PNG |
+| `results/lime/` | `case_studies.csv`, `lime_feature_weights.csv`, `html/` |
+
+---
+
+## 4. Experiments and Results
+
+### 4.1 Experimental protocol
+
+| Setting | Value |
+|---------|-------|
+| Data | REDv2 official splits; **no deduplication** |
+| Train / valid / test | 4,088 / 543 / 818 |
+| Feature fit | Training set only |
+| SVM input | Sparse TF-IDF (~14,239 features) |
+| MLP input | TF-IDF → SVD, **300** dimensions |
+| SVM `C` grid | {0.01, 0.1, 1, 10, 100} |
+| Threshold tuning | Validation grid [0.1, 0.9], step 0.05; maximize per-label F1 |
+| Test evaluation | **Once**, with validation-tuned thresholds |
+| Random seed | 42 |
+
+### 4.2 SVM hyperparameter search (validation)
+
+| C | Macro-F1 | Micro-F1 | Hamming loss |
+|---|----------|----------|--------------|
+| 0.01 | 0.488 | 0.492 | 0.195 |
+| **0.1** | **0.551** | **0.558** | 0.153 |
+| 1.0 | 0.538 | 0.555 | 0.135 |
+| 10.0 | 0.498 | 0.518 | 0.137 |
+| 100.0 | 0.489 | 0.517 | 0.135 |
+
+**Selected:** \(C = 0.1\) (best validation macro-F1).
+
+### 4.3 Test-set results (primary comparison)
+
+| Model | Macro-F1 | Micro-F1 | Hamming ↓ | Subset accuracy |
+|-------|----------|----------|-------------|-----------------|
+| **SVM (BR + LinearSVC)** | **0.495** | **0.506** | **0.140** | **0.322** |
+| MLP (TF-IDF + SVD) | 0.469 | 0.479 | 0.194 | 0.251 |
+| Majority baseline | 0.000 | 0.000 | 0.162 | 0.000 |
+
+The **linear SVM outperforms the MLP** on all four aggregate test metrics. Both beat the trivial majority baseline on F1 (baseline predicts only the frequent class per label and achieves 0 micro/macro-F1 on positive detection).
+
+**Validation summary (tuned thresholds):**
+
+| Model | Macro-F1 | Micro-F1 |
+|-------|----------|----------|
+| SVM | 0.530 | 0.538 |
+| MLP | 0.523 | 0.528 |
+
+### 4.4 Per-label F1 on test set
+
+| Label | SVM F1 | MLP F1 | Δ (MLP − SVM) |
+|-------|--------|--------|---------------|
+| Anger | **0.655** | 0.564 | −0.091 |
+| Fear | **0.649** | 0.639 | −0.010 |
+| Joy | **0.471** | 0.431 | −0.039 |
+| Sadness | **0.451** | 0.393 | −0.057 |
+| Neutral | 0.469 | **0.479** | +0.010 |
+| Trust | 0.326 | **0.367** | +0.041 |
+| Surprise | **0.447** | 0.414 | −0.033 |
+
+SVM is stronger on Anger, Fear, Joy, Sadness, and Surprise. MLP slightly improves Neutral and Trust (higher recall, lower precision on Neutral).
+
+### 4.5 Validation thresholds (examples)
+
+**SVM** (all labels tuned to 0.1 on validation scores): uniform low threshold reflects score scale of LinearSVC.
+
+**MLP** (sigmoid outputs): Anger 0.30, Fear 0.35, Joy 0.25, Sadness 0.55, Neutral 0.10, Trust 0.20, Surprise 0.35.
+
+### 4.6 MLP training
+
+- Best validation BCE: **0.355**  
+- Early stopping at epoch **11** (best checkpoint retained from early training chunk)  
+- Architecture: 256 → 128 → 7, Adam, batch size 64  
+
+### 4.7 Qualitative results — interpretability
+
+#### Linear SVM coefficients (examples, Anger)
+
+Top positive TF-IDF features for **Anger** include emotionally loaded Romanian terms and profanity, e.g. *dracului*, *nervi*, *urăsc*, *enervat* — linguistically plausible for anger in informal Twitter Romanian.
+
+#### LIME case studies
+
+Eight test tweets were selected (`results/lime/case_studies.csv`) with criteria: **SVM–MLP disagreement**, multi-label, and Neutral-related cases. For each case, HTML reports compare local token attributions per label (`results/lime/html/`).
+
+**Observations from case selection:**
+
+- Models often **disagree** on Neutral vs. a specific emotion (e.g. poetic Sadness tweet predicted Neutral by MLP only).  
+- **Disagreement** also appears on Fear/Trust/Anger boundaries on ambiguous short texts.  
+- LIME highlights content words and slang; stopwords and URLs sometimes receive weight (known LIME limitation).
+
+Exported: `results/lime/lime_feature_weights.csv`, `results/svm_br/top_tfidf_coefficients.csv`.
+
+#### Comparison figure
+
+Bar chart: `results/comparison/svm_vs_mlp_comparison.png` (macro-F1, micro-F1, subset accuracy).
+
+### 4.8 Discussion
+
+1. **SVM vs. MLP:** For this corpus size and TF-IDF features, a **well-tuned linear model** generalizes better than a shallow MLP on SVD-compressed inputs. Possible causes: limited training data (~4k tweets), early MLP stopping, and information loss in SVD.  
+2. **Class imbalance:** Neutral and Sadness dominate; MLP tends toward **high recall / low precision** on Neutral (test recall 0.82, precision 0.34). Threshold tuning partially mitigates this.  
+3. **Multi-label:** Low subset accuracy (~0.25–0.32) reflects strict exact-match evaluation; ~13% of tweets are truly multi-label.  
+4. **Baselines:** Majority per-label is a weak lower bound (0 F1); future work could add BR with constant probability or label powerset on frequent combinations.  
+5. **Limitations (TF-IDF, BR, LIME):** No word order, independent labels, local explanations only — see README Section 4 for the report’s limitations chapter.
+
+### 4.9 Comparison with REDv2 published BERT baselines
+
+REDv2 authors report **subset accuracy ~0.54** with Romanian BERT (classification setting), versus **~0.32 (SVM)** and **~0.25 (MLP)** here. Transformer contextual embeddings outperform bag-of-words on this task; our contribution is an **interpretable classical vs. shallow neural** comparison with shared TF-IDF and LIME/coefficient analysis, not state-of-the-art accuracy.
+
+---
+
+## References
+
+1. Ciobotaru, A., Constantinescu, M. V., Dinu, L. P., & Dumitrescu, S. D. (2022). RED v2: Enhancing RED Dataset for Multi-Label Emotion Detection. *LREC 2022*, 1392–1399.  
+2. Ciobotaru, A., & Dinu, L. P. (2021). RED: A Novel Dataset for Romanian Emotion Detection from Tweets. *RANLP 2021*, 291–300.  
+3. REDv2 dataset: https://github.com/Alegzandra/RED-Romanian-Emotion-Datasets  
+4. Ribeiro, M. T., Singh, S., & Guestrin, C. (2016). “Why should I trust you?” Explaining the predictions of any classifier. *KDD* (LIME).
+
+---
+
+## Appendix: Files to include in the paper
+
+| Figure / table | File |
+|----------------|------|
+| Label frequencies | `results/eda/label_frequencies_train.png` |
+| Co-occurrence heatmap | `results/eda/label_cooccurrence_train.png` |
+| Tweet lengths | `results/eda/tweet_length_distribution.png` |
+| SVM vs MLP bars | `results/comparison/svm_vs_mlp_comparison.png` |
+| Test metrics table | `results/comparison/test_metrics_comparison.csv` |
+| Per-label table | `results/comparison/per_label_comparison.csv` |
+| Plutchik mapping | `results/label_mapping.csv` |
+
+*Document generated from the implemented pipeline. Metrics reflect the committed codebase with `RANDOM_SEED=42` and `DEDUPLICATE_TEXTS=False`.*
