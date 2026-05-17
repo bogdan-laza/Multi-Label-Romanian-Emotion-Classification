@@ -69,9 +69,9 @@ $$\phi(x) \in \{ \text{TF-IDF}(x), \, \text{SVD}(\text{TF-IDF}(x)) \}$$
 
 For term \(t\) and document \(d\), with sublinear TF and smoothed IDF:
 
-\[
+$$
 w_{t,d} = \bigl(1 + \log \mathrm{tf}(t,d)\bigr) \cdot \left(\log\frac{N+1}{\mathrm{df}(t)+1} + 1\right)
-\]
+$$
 
 | Parameter | Value |
 |-----------|-------|
@@ -87,12 +87,12 @@ The vectorizer is **fitted on training tweets only**; validation and test are tr
 
 For each label \(j\), **LinearSVC** learns \(\mathbf{w}_j, b_j\) minimizing regularized hinge loss:
 
-\[
+$$
 \min_{\mathbf{w}_j, b_j} \frac{1}{2}\|\mathbf{w}_j\|^2 + C \sum_{i} \max\left(0,\, 1 - y_i^{(j)}(\mathbf{w}_j^\top \mathbf{x}_i + b_j)\right)
-\]
+$$
 
 - **Class weights:** `balanced`  
-- **Decision score:** \(s_j(\mathbf{x}) = \mathbf{w}_j^\top \mathbf{x} + b_j\)  
+- **Decision score:** $$\(s_j(\mathbf{x}) = \mathbf{w}_j^\top \mathbf{x} + b_j\)$$
 - **\(C\) tuning:** grid \(\{0.01, 0.1, 1, 10, 100\}\), select by **validation macro-F1** (threshold 0 on scores)  
 - **Features:** sparse TF-IDF (~14k dimensions on train)  
 
