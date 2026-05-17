@@ -1,5 +1,3 @@
-"""Multi-label evaluation metrics (validation tuning + final test)."""
-
 from __future__ import annotations
 
 import numpy as np
@@ -61,9 +59,6 @@ def tune_per_label_thresholds(
     y_proba: np.ndarray,
     grid: np.ndarray | None = None,
 ) -> np.ndarray:
-    """
-    Grid-search thresholds per label on validation data (maximize F1 per label).
-    """
     if grid is None:
         grid = np.linspace(0.1, 0.9, 17)
 

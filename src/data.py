@@ -1,5 +1,3 @@
-"""Load REDv2 splits and expose texts + multi-label targets."""
-
 from __future__ import annotations
 
 import json
@@ -74,13 +72,6 @@ def deduplicate_splits(
     splits: dict[str, pd.DataFrame],
     split_priority: tuple[str, ...] = ("train", "valid", "test"),
 ) -> dict[str, pd.DataFrame]:
-    """
-    Remove duplicate raw tweet text.
-
-    - Within a split: keep the first occurrence.
-    - Across splits: keep the row in the highest-priority split only
-      (default: train > valid > test).
-    """
     seen: set[str] = set()
     priority_rank = {name: i for i, name in enumerate(split_priority)}
     out: dict[str, pd.DataFrame] = {}
@@ -119,11 +110,6 @@ def get_X_y(df: pd.DataFrame) -> tuple[list[str], np.ndarray]:
 def check_duplicates_across_splits(
     splits: dict[str, pd.DataFrame],
 ) -> dict[str, object]:
-    """
-    Detect duplicate tweet text across official splits.
-
-    Returns summary dict with duplicate text keys and counts per split pair.
-    """
     text_to_splits: dict[str, set[str]] = {}
     for split_name, df in splits.items():
         for text in df["text_raw"].astype(str):
@@ -166,7 +152,6 @@ def dataset_summary(splits: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def verify_labels(splits: dict[str, pd.DataFrame]) -> None:
-    """Assert binary agreed_labels and expected columns."""
     for name, df in splits.items():
         for col in LABEL_NAMES:
             if col not in df.columns:
@@ -177,14 +162,12 @@ def verify_labels(splits: dict[str, pd.DataFrame]) -> None:
 
 
 def label_cooccurrence_matrix(df: pd.DataFrame) -> pd.DataFrame:
-    """Co-occurrence counts: how often label pairs appear on the same tweet."""
     y = df[LABEL_NAMES].values
     co = y.T @ y
     return pd.DataFrame(co, index=LABEL_NAMES, columns=LABEL_NAMES)
 
 
 def export_label_mapping_table(path: Path) -> None:
-    """Write REDv2 vs Plutchik mapping for the report (Section 2.2)."""
     from src.config import PLUTCHIK_IN_REDV2, PROJECT_ROOT
 
     rows = []

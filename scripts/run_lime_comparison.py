@@ -1,5 +1,3 @@
-"""Select test case studies and run LIME for SVM vs MLP side-by-side."""
-
 from __future__ import annotations
 
 import sys

@@ -1,11 +1,3 @@
-"""
-Train multi-label MLP on TF-IDF + TruncatedSVD features (REDv2).
-
-Uses the shared TfidfFeaturePipeline (use_svd=True, 300 dims), sklearn MLPClassifier
-with sigmoid outputs (binary cross-entropy), early stopping on the official validation
-split, and per-label threshold tuning via src.evaluate.
-"""
-
 from __future__ import annotations
 
 import json
@@ -37,11 +29,9 @@ from src.evaluate import (  # noqa: E402
 )
 from src.features import TfidfFeaturePipeline  # noqa: E402
 
-# Feature pipeline (must match build_features.py --svd)
 FEATURES_DIR = MODELS_DIR / "tfidf_svd"
 MLP_DIR = MODELS_DIR / "mlp"
 
-# MLP hyperparameters (README Section 3.2)
 HIDDEN_LAYER_SIZES = (256, 128)
 MLP_ALPHA = 1e-4
 LEARNING_RATE_INIT = 1e-3
@@ -111,7 +101,6 @@ def train_with_validation_early_stopping(
     X_valid: np.ndarray,
     y_valid: np.ndarray,
 ) -> tuple[MLPClassifier, dict]:
-    """Train MLP with warm_start; monitor validation BCE and restore best weights."""
     mlp = build_mlp()
     best_val_loss = np.inf
     best_checkpoint: bytes | None = None
@@ -261,7 +250,6 @@ def main() -> None:
         "thresholds": {l: float(thresholds[i]) for i, l in enumerate(LABEL_NAMES)},
         "training": train_info,
     }
-    # history can be large; keep last 5 epochs in summary only
     results["training"] = {
         "best_val_log_loss": train_info["best_val_log_loss"],
         "epochs_run": train_info["epochs_run"],

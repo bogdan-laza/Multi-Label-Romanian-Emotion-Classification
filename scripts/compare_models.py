@@ -1,5 +1,3 @@
-"""Compare Method 1 (SVM) vs Method 2 (MLP) on the test set; export tables and plots."""
-
 from __future__ import annotations
 
 import json

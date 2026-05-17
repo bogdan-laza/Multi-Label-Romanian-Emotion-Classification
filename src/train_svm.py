@@ -1,5 +1,3 @@
-"""Method 1: Binary Relevance with linear SVM on TF-IDF features."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -64,9 +62,6 @@ def tune_svm_c(
     y_valid: np.ndarray,
     c_grid: list[float] | None = None,
 ) -> tuple[float, pd.DataFrame]:
-    """
-    Pick regularization C by validation macro-F1 (default threshold 0 on scores).
-    """
     c_grid = c_grid if c_grid is not None else list(SVM_C_GRID)
     rows = []
     best_c = c_grid[0]
@@ -112,9 +107,6 @@ def train_and_tune(
     c_grid: list[float] | None = None,
     threshold_grid: np.ndarray | None = None,
 ) -> dict[str, object]:
-    """
-    Full Method 1 pipeline: C tuning, fit on train, per-label thresholds on valid.
-    """
     best_c, c_search_df = tune_svm_c(
         X_train, y_train, X_valid, y_valid, c_grid=c_grid
     )
@@ -159,9 +151,6 @@ def top_tfidf_coefficients(
     label_names: list[str] | None = None,
     top_k: int | None = None,
 ) -> pd.DataFrame:
-    """
-    Top positive/negative TF-IDF weights per label (global linear interpretability).
-    """
     label_names = label_names or LABEL_NAMES
     top_k = top_k if top_k is not None else SVM_TOP_COEF_K
     rows = []
