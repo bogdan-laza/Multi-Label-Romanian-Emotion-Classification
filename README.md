@@ -106,16 +106,7 @@ $$
 \mathbf{X} \approx \mathbf{U}_k \mathbf{\Sigma}_k \mathbf{V}_k^\top, \quad \mathbf{z}_d = \mathbf{x}_d \mathbf{V}_k
 $$
 
-**MLP:** hidden layers **256 → 128**, ReLU, output layer 7 units with **sigmoid** \(\sigma\). Training minimizes **binary cross-entropy** (independent labels, BR-consistent):
-
-$$
-\mathcal{L} = -\frac{1}{NL}\sum_{i,j}\left[y_i^{(j)}\log\hat{p}_i^{(j)} + (1-y_i^{(j)})\log(1-\hat{p}_i^{(j)})\right]
-$$
-
-- **Optimizer:** Adam, $$\(\eta_0 = 10^{-3}\)$$, `learning_rate='adaptive'`  
-- **L2:** $$\(\alpha = 10^{-4}\)$$  
-- **Early stopping:** validation BCE; restore best weights; patience = 10  
-- *Note:* `sklearn.MLPClassifier` has no dropout; regularization is L2 + early stopping + SVD  
+**MLP:** hidden layers **256 → 128**, ReLU, output layer 7 units with **sigmoid** \(\sigma\). Training minimizes **binary cross-entropy** (independent labels, BR-consistent).
 
 ### 2.6 Threshold tuning and metrics
 
