@@ -14,6 +14,7 @@ Multi-Label Romanian Emotion Classification using Statistical and Neural Approac
 
 ---
 
+Both
 ## 1. Problem Statement
 
 ### 1.1 NLP task
@@ -45,6 +46,7 @@ Emotion inventory is **REDv2’s seven labels**, informed by Plutchik where they
 
 ## 2. Proposed Solution
 
+Both
 ### 2.1 Multi-label strategy: Binary Relevance
 
 Both methods use **Binary Relevance (BR)**: train \(L\) independent binary classifiers \(h_j\), one per emotion. Label co-occurrence is not modeled explicitly but may appear in shared features.
@@ -58,6 +60,7 @@ $$\phi(x) \in \{ \text{TF-IDF}(x), \, \text{SVD}(\text{TF-IDF}(x)) \}$$
 * $h_j$: The classification function for the $j$-th emotion (e.g., *Anger, Fear, Joy*). For the SVM, this is an independent Binary Relevance classifier. For the MLP, this is the $j$-th node of the sigmoid output layer.
 * $\hat{y}_j$: The final predicted probability or binary label for that specific emotion.
 
+Both
 ### 2.2 Text preprocessing
 
 1. Strip whitespace  
@@ -65,6 +68,7 @@ $$\phi(x) \in \{ \text{TF-IDF}(x), \, \text{SVD}(\text{TF-IDF}(x)) \}$$
 3. Keep placeholders (`<|person|>`, `<|url|>`)  
 4. Collapse repeated spaces  
 
+Both
 ### 2.3 TF-IDF vectorization
 
 For term \(t\) and document \(d\), with sublinear TF and smoothed IDF:
@@ -83,6 +87,7 @@ $$
 
 The vectorizer is **fitted on training tweets only**; validation and test are transformed with the same vocabulary.
 
+Labo Nikole
 ### 2.4 Method 1: Binary Relevance + Linear SVM
 
 For each label \(j\), **LinearSVC** learns \(\mathbf{w}_j, b_j\) minimizing regularized hinge loss:
@@ -98,6 +103,7 @@ $$
 
 **Global interpretability:** coefficients \(w_{j,t}\) show which n-grams push toward/away from label \(j\).
 
+Laza Bogdan
 ### 2.5 Method 2: Truncated SVD + MLP
 
 **Truncated SVD** (LSA) projects sparse $$\(\mathbf{x} \in \mathbb{R}^{|\mathcal{V}|}\) to \(\mathbf{z} \in \mathbb{R}^{300}\) $$, fit on training TF-IDF only:
@@ -108,6 +114,7 @@ $$
 
 **MLP:** hidden layers **256 → 128**, ReLU, output layer 7 units with **sigmoid** \(\sigma\). Training minimizes **binary cross-entropy** (independent labels, BR-consistent).
 
+Both
 ### 2.6 Threshold tuning and metrics
 
 **Per-label thresholds** $$\(\tau_j \in [0.1, 0.9]\)$$ are chosen on the **validation set** to maximize per-label F1, then applied at test time.
@@ -119,16 +126,19 @@ $$
 | Hamming loss | Fraction of wrong label bits |
 | Subset accuracy | Exact match of full label set |
 
+Both
 ### 2.7 Trivial baseline
 
 **Majority per label** (`DummyClassifier`, BR wrapper): predicts the most frequent class on train for each label independently. Used to verify that SVM/MLP beat a naive strategy.
 
+Both
 ### 2.8 Interpretability (LIME)
 
 **LIME** fits a sparse linear model locally around each tweet by perturbing words. For 8 curated test cases, explanations are generated per active/predicted label for **both** SVM and MLP, using the same TF-IDF (and SVD for MLP).
 
 ---
 
+Labo Nikole
 ## 2.2. Dataset Used in the Application — Description and Analysis
 
 ### Source
@@ -212,6 +222,7 @@ Splits are length-consistent; short texts justify TF-IDF bag-of-words.
 
 ---
 
+Laza Bogdan
 ## 2.3. Application
 
 ### 2.3.1 System overview
@@ -433,6 +444,7 @@ Project constants: paths, `LABEL_NAMES`, Plutchik flags, TF-IDF/SVM/MLP/LIME hyp
 
 ---
 
+Both
 ## 4. Experiments and Results
 
 ### 4.1 Experimental protocol
