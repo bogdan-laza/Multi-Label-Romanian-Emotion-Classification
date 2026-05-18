@@ -1,3 +1,4 @@
+#Laza Bogdan
 import re
 
 from src.config import LOWERCASE_TEXT, STRIP_WHITESPACE
